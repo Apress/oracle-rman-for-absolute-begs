@@ -1,0 +1,17 @@
+#!/bin/bash
+export ORACLE_SID=O12C
+export ORACLE_HOME=/orahome/app/oracle/product/12.1.0.1/db_1
+export PATH=$PATH:$ORACLE_HOME/bin
+#
+DAY=$(date +%Y_%m_%d)
+SID=DWREP
+#---------------------------------------------------
+# First create export dump file with metadata only
+expdp mv_maint/foo dumpfile=${SID}.${DAY}.dmp content=metadata_only \
+directory=dp_dir full=y logfile=${SID}.${DAY}.log
+#---------------------------------------------------
+# Now create DDL file from the export dump file.
+impdp mv_maint/foo directory=dp_dir dumpfile=${SID}.${DAY}.dmp \
+SQLFILE=${SID}.${DAY}.sql logfile=${SID}.${DAY}.sql.log
+#
+exit 0

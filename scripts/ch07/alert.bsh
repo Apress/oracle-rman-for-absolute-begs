@@ -1,0 +1,30 @@
+#!/bin/bash
+export DBS="ENGDEV STAGE OTEST"
+export MAILLIST="larry@support.com"
+export BOX=`uname -a | awk '{print$2}'`
+#-----------------------------------------------------------
+for instance in $DBS
+do
+# call script to source oracle OS variables
+export ORACLE_SID=O12C
+export ORACLE_HOME=/orahome/app/oracle/product/12.1.0.1/db_1
+export PATH=$PATH:$ORACLE_HOME/bin 
+crit_var=$(
+sqlplus -s <<EOF
+/ as sysdba
+SET HEAD OFF TERM OFF FEED OFF VERIFY OFF
+COL value FORM A80
+select value from v\$diag_info where name='Diag Trace';
+EOF)
+  if [ -r $crit_var/alert_$instance.log ]
+  then
+  grep -ic error $crit_var/alert_$instance.log
+    if [ $? = 0 ]
+    then
+     mailx -s "Error in $instance log file" $MAILLIST <<EOF
+Error in $crit_var/alert_$instance.log file on $BOX...
+EOF
+    fi # $?
+  fi # -r
+done # for instance
+exit 0

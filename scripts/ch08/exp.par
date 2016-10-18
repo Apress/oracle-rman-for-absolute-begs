@@ -1,0 +1,6 @@
+userid=mv_maint/foo
+directory=dp_dir
+dumpfile=exp.dmp
+logfile=exp.log
+tables=inv
+reuse_dumpfiles=y

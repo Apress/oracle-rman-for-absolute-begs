@@ -1,0 +1,20 @@
+#!/bin/bash
+ORACLE_SID=O12C
+ORACLE_HOME=/u01/app/oracle/product/12.1.0.1/db_1
+PATH=$PATH:$ORACLE_HOME/bin
+#
+sqlplus -s <<EOF
+/ as sysdba
+set head off pages0 lines 132 verify off feed off trimsp on
+define cbdir=/u01/cbackup/O12C
+spo coldback.sql
+select 'shutdown immediate;' from dual;
+select '!cp ' || name || ' ' || '&&cbdir'   from v\$datafile;
+select '!cp ' || name || ' ' || '&&cbdir'   from v\$tempfile;
+select '!cp ' || member || ' ' || '&&cbdir' from v\$logfile;
+select '!cp ' || name || ' ' || '&&cbdir'   from v\$controlfile;
+select 'startup;' from dual;
+spo off;
+@@coldback.sql
+EOF
+exit 0

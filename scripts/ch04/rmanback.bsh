@@ -1,0 +1,55 @@
+#!/bin/bash
+#----------------------------------------------
+PRG=`basename $0`
+USAGE="Usage: ${PRG}"
+if [ $# -gt 0 ]; then
+   echo "${USAGE}"
+   exit 1
+fi
+export ORACLE_SID=O12C
+export ORACLE_HOME=/orahome/app/oracle/product/12.1.0.1/db_1
+export PATH=$PATH:$ORACLE_HOME/bin 
+BOX=`uname -a | awk '{print$2}'`
+MAILX='/bin/mailx'
+MAIL_LIST='dkuhn@gmail.com'
+export NLS_DATE_FORMAT='dd-mon-yyyy hh24:mi:ss'
+date
+#----------------------------------------------
+LOCKFILE=/tmp/$PRG.lock
+if [ -f $LOCKFILE ]; then
+  echo "lock file exists, exiting..."
+  exit 1
+else
+  echo "DO NOT REMOVE, $LOCKFILE" > $LOCKFILE
+fi
+#----------------------------------------------
+rman nocatalog <<EOF
+connect target /
+set echo on;
+show all;
+crosscheck backup;
+crosscheck copy;
+configure controlfile autobackup on;
+configure controlfile autobackup format for device type disk to
+'/u01/O12C/rman/O12C_ctl_%F.bk';
+configure retention policy to redundancy 1;
+configure           device type disk parallelism 2;
+configure channel 1 device type disk format '/u01/O12C/rman/O12C_%U.bk';
+configure channel 2 device type disk format '/u01/O12C/rman/O12C_%U.bk';
+backup as compressed backupset incremental level=0 database plus archivelog;
+delete noprompt obsolete;
+EOF
+#----------------------------------------------
+if [ $? -ne 0 ]; then
+   echo "RMAN problem..."
+  echo "Check RMAN backups" | $MAILX -s "RMAN issue: $ORACLE_SID on $BOX" $MAIL_LIST
+else
+  echo "RMAN ran okay..."
+fi
+#----------------------------------------------
+if [ -f $LOCKFILE ]; then
+  rm $LOCKFILE
+fi
+#----------------------------------------------
+date
+exit 0
